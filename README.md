@@ -1,51 +1,51 @@
-# AI Web Scraper Starter
+# AI Web Scraper
 
-A full-stack starter app where a user can:
+A full-stack web scraper where you can:
 
-- Enter a URL
-- Enter a natural-language scraping prompt
-- Scrape page content
-- Extract structured data from HTML
+- Enter a URL and a natural-language prompt
+- Scrape JavaScript-heavy pages using a headless browser
+- Extract structured data with your choice of AI provider
 - Preview results in a table
-- Export results as JSON or CSV
+- Export as CSV or JSON
 
-This is a starter project for building a custom scraping tool similar to Browse AI, Apify, or Octoparse.
+Built as a custom alternative to tools like Browse AI, Apify, or Octoparse.
 
 ## Tech Stack
 
-Frontend:
-- React
-- Vite
-- Axios
+**Frontend:** React, Vite, Axios
 
-Backend:
-- FastAPI
-- BeautifulSoup
-- Playwright
-- Pandas
-- OpenAI API optional
+**Backend:** FastAPI, Playwright, BeautifulSoup, Anthropic SDK, Google Generative AI, OpenAI SDK
+
+## AI Providers
+
+The tool supports three AI providers. Set any key in `.env` — the backend auto-detects whichever is available, preferring Anthropic first. You can also select a provider manually per request from the UI dropdown.
+
+| Provider | Key | Model |
+|---|---|---|
+| Anthropic (Claude) | `ANTHROPIC_API_KEY` | claude-sonnet-4-6 |
+| Google Gemini | `GEMINI_API_KEY` | gemini-2.0-flash |
+| OpenAI | `OPENAI_API_KEY` | gpt-4.1-mini |
+
+If AI extraction fails, the scraper automatically falls back to a BeautifulSoup-based extractor that reads table headers and rows directly from the HTML — no AI required.
 
 ## Project Structure
 
-```txt
-ai-web-scraper-starter/
+```
+ui_ai_web_scraper/
   backend/
     app/
-      main.py
-      scraper.py
-      ai_extractor.py
-      exporter.py
-      schemas.py
+      main.py          # FastAPI routes
+      scraper.py       # Playwright fetch + HTML cleaning + fallback extractor
+      ai_extractor.py  # Anthropic / Gemini / OpenAI extraction logic
+      exporter.py      # CSV and JSON export
+      schemas.py       # Request/response models
     requirements.txt
-    .env.example
+    .env
   frontend/
     src/
-      App.jsx
-      api.js
+      App.jsx          # Main UI with provider selector
+      api.js           # Axios calls to backend
       main.jsx
-      styles.css
-    package.json
-    index.html
   README.md
 ```
 
@@ -56,54 +56,38 @@ cd backend
 python -m venv venv
 ```
 
-Windows:
-
+**Windows:**
 ```bash
 venv\Scripts\activate
 ```
 
-Mac/Linux:
-
+**Mac/Linux:**
 ```bash
 source venv/bin/activate
 ```
 
-Install dependencies:
+Install dependencies and Playwright browsers:
 
 ```bash
 pip install -r requirements.txt
 python -m playwright install
 ```
 
-Create your `.env` file:
-
-```bash
-copy .env.example .env
-```
-
-Mac/Linux:
-
-```bash
-cp .env.example .env
-```
-
-Add your OpenAI key if you want AI extraction:
+Create your `.env` file and add at least one AI key:
 
 ```env
-OPENAI_API_KEY=your_openai_api_key_here
+ANTHROPIC_API_KEY=your_anthropic_key_here
+GEMINI_API_KEY=your_gemini_key_here
+OPENAI_API_KEY=your_openai_key_here
 ```
 
-Run backend:
+Run the backend:
 
 ```bash
 uvicorn app.main:app --reload --port 8000
 ```
 
-Backend runs at:
-
-```txt
-http://localhost:8000
-```
+Runs at `http://localhost:8000`
 
 ## Frontend Setup
 
@@ -113,36 +97,47 @@ npm install
 npm run dev
 ```
 
-Frontend runs at:
+Runs at `http://localhost:5173`
 
-```txt
-http://localhost:5173
-```
+## How It Works
+
+1. Playwright loads the page in a headless Chromium browser (handles JavaScript-rendered content)
+2. BeautifulSoup cleans the HTML — tables are extracted first and preserved as structured `<table><tr><td>` markup; surrounding page chrome is excluded when tables are present
+3. The cleaned HTML is sent to the selected AI provider with your prompt
+4. The AI returns a JSON array of objects; the backend parses and recovers partial responses if the output was truncated
+5. Results are displayed in a table and available for export
 
 ## Example Prompts
 
-```txt
+```
 Extract job title, company name, location, salary, and apply link.
 ```
 
-```txt
-Extract product name, price, rating, image URL, and product link.
+```
+Extract product name, price, rating, and product link for each item.
 ```
 
-```txt
-Extract all article titles, authors, dates, summaries, and links.
 ```
+Extract all article titles, authors, publish dates, and links.
+```
+
+```
+Give me the trade or occupation, committee name, and type for each row.
+```
+
+## Windows Note
+
+Playwright requires a `ProactorEventLoop` to spawn subprocesses on Windows. The backend sets `WindowsProactorEventLoopPolicy` automatically before each Playwright call — no manual configuration needed.
 
 ## Notes
 
-Some websites block scraping. Respect robots.txt, site terms, and rate limits.
+- Some websites block scraping. Respect `robots.txt`, site terms, and rate limits.
+- If AI extraction is disabled, the fallback extractor still returns full table data using column headers from `<th>` elements.
+- AI errors are shown in the UI so you can see exactly what failed rather than silently receiving wrong data.
 
-For production, add:
+For production, consider adding:
 - User authentication
-- Queue/background jobs
-- Database storage
-- Rate limiting
-- Proxy support
-- Better selector detection
-- robots.txt checks
-- Scrape history
+- Background job queue
+- Database storage for scrape history
+- Rate limiting and proxy support
+- `robots.txt` compliance checks
