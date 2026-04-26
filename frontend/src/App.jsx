@@ -7,6 +7,7 @@ export default function App() {
     "Extract title, description, price, location, company name, and link if available."
   );
   const [useAi, setUseAi] = useState(true);
+  const [provider, setProvider] = useState("auto");
   const [result, setResult] = useState(null);
   const [rawPreviewOpen, setRawPreviewOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -29,7 +30,7 @@ export default function App() {
     setResult(null);
 
     try {
-      const data = await scrapeWebsite({ url, prompt, useAi });
+      const data = await scrapeWebsite({ url, prompt, useAi, provider });
       setResult(data);
     } catch (err) {
       setError(err?.response?.data?.detail || err.message || "Something went wrong.");
@@ -88,12 +89,30 @@ export default function App() {
             Use AI extraction
           </label>
 
+          {useAi && (
+            <label>
+              AI Provider
+              <select value={provider} onChange={(e) => setProvider(e.target.value)}>
+                <option value="auto">Auto-detect (uses first available key)</option>
+                <option value="anthropic">Anthropic (Claude)</option>
+                <option value="gemini">Google Gemini</option>
+                <option value="openai">OpenAI</option>
+              </select>
+            </label>
+          )}
+
           <button disabled={loading} type="submit">
             {loading ? "Scraping..." : "Scrape Website"}
           </button>
         </form>
 
         {error && <div className="error">{error}</div>}
+        {result?.ai_error && (
+          <div className="error">
+            AI extraction failed — showing fallback table data instead.<br />
+            <small>{result.ai_error}</small>
+          </div>
+        )}
       </section>
 
       {result && (

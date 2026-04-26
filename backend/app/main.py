@@ -1,6 +1,11 @@
+import logging
+import traceback
+
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+
+logging.basicConfig(level=logging.INFO)
 
 from .schemas import ScrapeRequest, ScrapeResponse, ExportRequest
 from .scraper import fetch_html, clean_html_for_ai, fallback_extract
@@ -31,13 +36,15 @@ async def scrape(request: ScrapeRequest):
 
     try:
         html = await fetch_html(url)
-        cleaned_html = clean_html_for_ai(html)
+        cleaned_html = clean_html_for_ai(html, base_url=url)
 
+        ai_error = None
         if request.use_ai:
             try:
-                data = extract_with_ai(cleaned_html, request.prompt)
-            except Exception as ai_error:
-                print("AI extraction failed. Falling back:", ai_error)
+                data = extract_with_ai(cleaned_html, request.prompt, provider=request.provider)
+            except Exception as exc:
+                logging.error("AI extraction failed:\n%s", traceback.format_exc())
+                ai_error = str(exc)
                 data = fallback_extract(html, url)
         else:
             data = fallback_extract(html, url)
@@ -50,9 +57,11 @@ async def scrape(request: ScrapeRequest):
             data=data,
             fields=fields,
             raw_preview=cleaned_html[:3000],
+            ai_error=ai_error,
         )
 
     except Exception as error:
+        logging.error("Scrape error:\n%s", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(error))
 
 
