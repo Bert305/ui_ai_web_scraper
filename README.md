@@ -1,13 +1,19 @@
 # AI Web Scraper
 
 
-A full-stack web scraper where you can:
+A full-stack web scraper with two modes:
 
+**Scrape Data** — for end users:
 - Enter a URL and a natural-language prompt
 - Scrape JavaScript-heavy pages using a headless browser
 - Extract structured data with your choice of AI provider
 - Preview results in a table
 - Export as CSV or JSON
+
+**Generate Script** — for developers:
+- Enter a URL, describe what to extract, pick a target stack (Python+Playwright, Python+BS4, Scrapy, Node+Puppeteer, Node+Cheerio)
+- The backend fetches the page and feeds the cleaned HTML to the AI so generated selectors match the real DOM
+- Copy or download a single runnable script file
 
 Built as a custom alternative to tools like Browse AI, Apify, or Octoparse.
 
@@ -35,17 +41,20 @@ If AI extraction fails, the scraper automatically falls back to a BeautifulSoup-
 ui_ai_web_scraper/
   backend/
     app/
-      main.py          # FastAPI routes
-      scraper.py       # Playwright fetch + HTML cleaning + fallback extractor
-      ai_extractor.py  # Anthropic / Gemini / OpenAI extraction logic
-      exporter.py      # CSV and JSON export
-      schemas.py       # Request/response models
+      main.py             # FastAPI routes
+      scraper.py          # Playwright fetch + HTML cleaning + fallback extractor
+      ai_extractor.py     # AI data-extraction logic (Anthropic / Gemini / OpenAI)
+      script_generator.py # AI script-generation logic (per-stack prompting)
+      exporter.py         # CSV and JSON export
+      schemas.py          # Request/response models
     requirements.txt
     .env
   frontend/
     src/
-      App.jsx          # Main UI with provider selector
-      api.js           # Axios calls to backend
+      App.jsx              # Tabbed UI shell (Scrape Data / Generate Script)
+      Scraper.jsx          # Scrape Data tab
+      ScriptGenerator.jsx  # Generate Script tab
+      api.js               # Axios calls to backend
       main.jsx
   README.md
 ```
@@ -99,6 +108,14 @@ npm run dev
 ```
 
 Runs at `http://localhost:5173`
+
+## API Endpoints
+
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/scrape` | Fetch a URL, extract structured data with AI (or fallback) |
+| `POST` | `/generate-script` | Fetch a URL, generate a runnable scraping script in the requested language |
+| `POST` | `/export` | Convert a JSON array to CSV or JSON download |
 
 ## How It Works
 

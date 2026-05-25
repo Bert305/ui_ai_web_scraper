@@ -21,3 +21,20 @@ class ScrapeResponse(BaseModel):
 class ExportRequest(BaseModel):
     data: List[Dict[str, Any]]
     format: str
+
+
+class ScriptGenerationRequest(BaseModel):
+    url: HttpUrl
+    prompt: str
+    language: str  # python-playwright | python-bs4 | python-requests | python-scrapy | node-puppeteer | node-cheerio
+    provider: Optional[str] = None  # anthropic | gemini | openai | auto
+    ground_on_html: bool = True  # fetch the page and feed cleaned HTML to the AI for accurate selectors
+
+
+class ScriptGenerationResponse(BaseModel):
+    url: str
+    prompt: str
+    language: str
+    filename: str
+    code: str
+    grounded: bool

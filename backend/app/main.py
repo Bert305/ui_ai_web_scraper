@@ -7,9 +7,16 @@ from fastapi.middleware.cors import CORSMiddleware
 
 logging.basicConfig(level=logging.INFO)
 
-from .schemas import ScrapeRequest, ScrapeResponse, ExportRequest
+from .schemas import (
+    ScrapeRequest,
+    ScrapeResponse,
+    ExportRequest,
+    ScriptGenerationRequest,
+    ScriptGenerationResponse,
+)
 from .scraper import fetch_html, clean_html_for_ai, fallback_extract
 from .ai_extractor import extract_with_ai
+from .script_generator import generate_script
 from .exporter import export_csv, export_json
 
 load_dotenv()
@@ -66,6 +73,38 @@ async def scrape(request: ScrapeRequest):
 
     except Exception as error:
         logging.error("Scrape error:\n%s", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(error))
+
+
+@app.post("/generate-script", response_model=ScriptGenerationResponse)
+async def generate_script_endpoint(request: ScriptGenerationRequest):
+    url = str(request.url)
+
+    try:
+        cleaned_html = None
+        if request.ground_on_html:
+            html = await fetch_html(url)
+            cleaned_html = clean_html_for_ai(html, base_url=url)
+
+        code, filename = generate_script(
+            url=url,
+            prompt=request.prompt,
+            language=request.language,
+            cleaned_html=cleaned_html,
+            provider=request.provider,
+        )
+
+        return ScriptGenerationResponse(
+            url=url,
+            prompt=request.prompt,
+            language=request.language,
+            filename=filename,
+            code=code,
+            grounded=cleaned_html is not None,
+        )
+
+    except Exception as error:
+        logging.error("Script generation error:\n%s", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(error))
 
 
