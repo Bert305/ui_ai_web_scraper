@@ -1,7 +1,7 @@
 # AI Web Scraper
 
 
-A full-stack web scraper with two modes:
+A full-stack web scraper and database-tooling app with three modes:
 
 **Scrape Data** — for end users:
 - Enter a URL and a natural-language prompt
@@ -15,11 +15,17 @@ A full-stack web scraper with two modes:
 - The backend fetches the page and feeds the cleaned HTML to the AI so generated selectors match the real DOM
 - Copy or download a single runnable script file
 
+**SQL & ERD** — for working against a database schema:
+- Paste your PostgreSQL DDL (CREATE TABLE statements) and describe what you want
+- Generate SQL queries (SELECT / INSERT / UPDATE / DELETE) grounded in your exact tables and columns
+- Generate a Mermaid ERD that renders inline in the browser
+- Copy or download queries (`.sql`) and ERD source (`.mmd`)
+
 Built as a custom alternative to tools like Browse AI, Apify, or Octoparse.
 
 ## Tech Stack
 
-**Frontend:** React, Vite, Axios
+**Frontend:** React, Vite, Axios, Mermaid
 
 **Backend:** FastAPI, Playwright, BeautifulSoup, Anthropic SDK, Google Generative AI, OpenAI SDK
 
@@ -45,15 +51,17 @@ ui_ai_web_scraper/
       scraper.py          # Playwright fetch + HTML cleaning + fallback extractor
       ai_extractor.py     # AI data-extraction logic (Anthropic / Gemini / OpenAI)
       script_generator.py # AI script-generation logic (per-stack prompting)
+      sql_generator.py    # AI SQL-query + Mermaid-ERD generation
       exporter.py         # CSV and JSON export
       schemas.py          # Request/response models
     requirements.txt
     .env
   frontend/
     src/
-      App.jsx              # Tabbed UI shell (Scrape Data / Generate Script)
+      App.jsx              # Tabbed UI shell (Scrape Data / Generate Script / SQL & ERD)
       Scraper.jsx          # Scrape Data tab
       ScriptGenerator.jsx  # Generate Script tab
+      SqlGenerator.jsx     # SQL & ERD tab (Mermaid rendered inline)
       api.js               # Axios calls to backend
       main.jsx
   README.md
@@ -115,6 +123,7 @@ Runs at `http://localhost:5173`
 |---|---|---|
 | `POST` | `/scrape` | Fetch a URL, extract structured data with AI (or fallback) |
 | `POST` | `/generate-script` | Fetch a URL, generate a runnable scraping script in the requested language |
+| `POST` | `/generate-sql` | From a pasted PostgreSQL DDL + prompt, return SQL queries and/or a Mermaid ERD |
 | `POST` | `/export` | Convert a JSON array to CSV or JSON download |
 
 ## How It Works
@@ -142,6 +151,25 @@ Extract all article titles, authors, publish dates, and links.
 ```
 Give me the trade or occupation, committee name, and type for each row.
 ```
+
+## Example SQL Prompts
+
+Paste your `CREATE TABLE` statements into the **SQL & ERD** tab, then describe what you want:
+
+```
+Give me a query for the top 10 customers by total spend in the last 30 days,
+and a query to insert a new order for a customer by email.
+```
+
+```
+Show all orders placed in the last 7 days that have no shipment record yet.
+```
+
+```
+Update product prices by 5% for items in the "electronics" category.
+```
+
+The generator grounds every query on the exact tables and columns in your DDL — it won't invent column names. The ERD output is Mermaid source that renders inline in the browser and can be downloaded as a `.mmd` file.
 
 ## Windows Note
 
