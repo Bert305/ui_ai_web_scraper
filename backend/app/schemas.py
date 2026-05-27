@@ -38,3 +38,19 @@ class ScriptGenerationResponse(BaseModel):
     filename: str
     code: str
     grounded: bool
+
+
+class SqlGenerationRequest(BaseModel):
+    schema_sql: str
+    prompt: str
+    dialect: str = "postgresql"
+    include_queries: bool = True
+    include_erd: bool = True
+    provider: Optional[str] = None  # anthropic | gemini | openai | auto
+
+
+class SqlGenerationResponse(BaseModel):
+    dialect: str
+    prompt: str
+    queries: Optional[str] = None
+    erd_mermaid: Optional[str] = None

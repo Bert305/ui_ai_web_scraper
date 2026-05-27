@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Scraper from "./Scraper";
 import ScriptGenerator from "./ScriptGenerator";
+import SqlGenerator from "./SqlGenerator";
 
 const TABS = [
   {
@@ -19,11 +20,25 @@ const TABS = [
     subtitle:
       "Describe what to extract and pick a stack — get a runnable script with selectors grounded in the real page HTML.",
   },
+  {
+    id: "sql",
+    label: "SQL & ERD",
+    eyebrow: "Database Tools",
+    title: "SQL Queries, Python Scripts, and ERDs from a Schema",
+    subtitle:
+      "Paste your PostgreSQL DDL, describe what you want — get queries, a runnable Python script, and a visual ERD grounded in your schema.",
+  },
 ];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("scrape");
   const tab = TABS.find((t) => t.id === activeTab);
+
+  function renderTab() {
+    if (activeTab === "scrape") return <Scraper />;
+    if (activeTab === "generate") return <ScriptGenerator />;
+    return <SqlGenerator />;
+  }
 
   return (
     <main className="page">
@@ -49,7 +64,7 @@ export default function App() {
         ))}
       </nav>
 
-      {activeTab === "scrape" ? <Scraper /> : <ScriptGenerator />}
+      {renderTab()}
     </main>
   );
 }

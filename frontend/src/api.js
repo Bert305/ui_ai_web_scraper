@@ -25,6 +25,26 @@ export async function generateScript({ url, prompt, language, provider, groundOn
   return response.data;
 }
 
+export async function generateSql({
+  schemaSql,
+  prompt,
+  dialect,
+  includeQueries,
+  includeErd,
+  provider,
+}) {
+  const response = await axios.post(`${API_BASE_URL}/generate-sql`, {
+    schema_sql: schemaSql,
+    prompt,
+    dialect,
+    include_queries: includeQueries,
+    include_erd: includeErd,
+    provider,
+  });
+
+  return response.data;
+}
+
 export function downloadText(text, filename) {
   const blob = new Blob([text], { type: "text/plain" });
   const downloadUrl = window.URL.createObjectURL(blob);

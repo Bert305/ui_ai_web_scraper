@@ -13,10 +13,13 @@ from .schemas import (
     ExportRequest,
     ScriptGenerationRequest,
     ScriptGenerationResponse,
+    SqlGenerationRequest,
+    SqlGenerationResponse,
 )
 from .scraper import fetch_html, clean_html_for_ai, fallback_extract
 from .ai_extractor import extract_with_ai
 from .script_generator import generate_script
+from .sql_generator import generate_sql
 from .exporter import export_csv, export_json
 
 load_dotenv()
@@ -105,6 +108,30 @@ async def generate_script_endpoint(request: ScriptGenerationRequest):
 
     except Exception as error:
         logging.error("Script generation error:\n%s", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(error))
+
+
+@app.post("/generate-sql", response_model=SqlGenerationResponse)
+async def generate_sql_endpoint(request: SqlGenerationRequest):
+    try:
+        result = generate_sql(
+            schema_sql=request.schema_sql,
+            prompt=request.prompt,
+            dialect=request.dialect,
+            include_queries=request.include_queries,
+            include_erd=request.include_erd,
+            provider=request.provider,
+        )
+
+        return SqlGenerationResponse(
+            dialect=request.dialect,
+            prompt=request.prompt,
+            queries=result["queries"],
+            erd_mermaid=result["erd_mermaid"],
+        )
+
+    except Exception as error:
+        logging.error("SQL generation error:\n%s", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(error))
 
 
