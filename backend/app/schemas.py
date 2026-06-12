@@ -54,3 +54,15 @@ class SqlGenerationResponse(BaseModel):
     prompt: str
     queries: Optional[str] = None
     erd_mermaid: Optional[str] = None
+
+
+class DataAnalysisResponse(BaseModel):
+    filename: str
+    prompt: str
+    row_count: int
+    columns: List[Dict[str, Any]]
+    sample: List[Dict[str, Any]] = []
+    summary: Optional[str] = None
+    kpis: List[Dict[str, Any]] = []
+    charts: List[Dict[str, Any]] = []
+    sql: Optional[str] = None

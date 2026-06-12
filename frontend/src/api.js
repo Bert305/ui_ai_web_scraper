@@ -45,6 +45,20 @@ export async function generateSql({
   return response.data;
 }
 
+export async function analyzeData({ file, prompt, provider, includeSql }) {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("prompt", prompt);
+  formData.append("provider", provider || "auto");
+  formData.append("include_sql", includeSql ? "true" : "false");
+
+  const response = await axios.post(`${API_BASE_URL}/analyze-data`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
+  return response.data;
+}
+
 export function downloadText(text, filename) {
   const blob = new Blob([text], { type: "text/plain" });
   const downloadUrl = window.URL.createObjectURL(blob);

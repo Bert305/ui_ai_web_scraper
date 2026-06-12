@@ -1,7 +1,7 @@
 # AI Web Scraper
 
 
-A full-stack web scraper and database-tooling app with three modes:
+A full-stack web scraper and database-tooling app with four modes:
 
 **Scrape Data** — for end users:
 - Enter a URL and a natural-language prompt
@@ -21,13 +21,21 @@ A full-stack web scraper and database-tooling app with three modes:
 - Generate a Mermaid ERD that renders inline in the browser
 - Copy or download queries (`.sql`) and ERD source (`.mmd`)
 
+**Analyze Data** — for spreadsheets:
+- Upload a CSV, Excel (`.xlsx`/`.xls`), or JSON file
+- Describe the stats, KPIs, or metrics you want in plain language
+- The AI proposes an analysis *plan* (which columns and aggregations answer your request); the backend executes it with **pandas** so the numbers are exact — not hallucinated
+- Get KPI cards, rendered charts (bar, line, pie, scatter via Recharts), and a data preview
+- Download a **JPEG** of the insights and visualizations to share or drop into a report
+- Bonus: get the equivalent **SQL query** that finds the same stats, ready to copy or download
+
 Built as a custom alternative to tools like Browse AI, Apify, or Octoparse.
 
 ## Tech Stack
 
-**Frontend:** React, Vite, Axios, Mermaid
+**Frontend:** React, Vite, Axios, Mermaid, Recharts, html-to-image
 
-**Backend:** FastAPI, Playwright, BeautifulSoup, Anthropic SDK, Google Generative AI, OpenAI SDK
+**Backend:** FastAPI, Playwright, BeautifulSoup, pandas, openpyxl, Anthropic SDK, Google Generative AI, OpenAI SDK
 
 ## AI Providers
 
@@ -52,16 +60,18 @@ ui_ai_web_scraper/
       ai_extractor.py     # AI data-extraction logic (Anthropic / Gemini / OpenAI)
       script_generator.py # AI script-generation logic (per-stack prompting)
       sql_generator.py    # AI SQL-query + Mermaid-ERD generation
+      data_analyzer.py    # CSV/Excel/JSON profiling + AI analysis plan + pandas execution
       exporter.py         # CSV and JSON export
       schemas.py          # Request/response models
     requirements.txt
     .env
   frontend/
     src/
-      App.jsx              # Tabbed UI shell (Scrape Data / Generate Script / SQL & ERD)
+      App.jsx              # Tabbed UI shell (Scrape Data / Generate Script / SQL & ERD / Analyze Data)
       Scraper.jsx          # Scrape Data tab
       ScriptGenerator.jsx  # Generate Script tab
       SqlGenerator.jsx     # SQL & ERD tab (Mermaid rendered inline)
+      DataAnalyzer.jsx     # Analyze Data tab (KPI cards + Recharts + SQL bonus)
       api.js               # Axios calls to backend
       main.jsx
   README.md
@@ -124,6 +134,7 @@ Runs at `http://localhost:5173`
 | `POST` | `/scrape` | Fetch a URL, extract structured data with AI (or fallback) |
 | `POST` | `/generate-script` | Fetch a URL, generate a runnable scraping script in the requested language |
 | `POST` | `/generate-sql` | From a pasted PostgreSQL DDL + prompt, return SQL queries and/or a Mermaid ERD |
+| `POST` | `/analyze-data` | Upload a CSV/Excel/JSON file + prompt; return KPIs, chart data, and an equivalent SQL query (multipart form) |
 | `POST` | `/export` | Convert a JSON array to CSV or JSON download |
 
 ## How It Works
@@ -170,6 +181,25 @@ Update product prices by 5% for items in the "electronics" category.
 ```
 
 The generator grounds every query on the exact tables and columns in your DDL — it won't invent column names. The ERD output is Mermaid source that renders inline in the browser and can be downloaded as a `.mmd` file.
+
+## Example Data-Analysis Prompts
+
+Upload a `.csv`, `.xlsx`, or `.json` file in the **Analyze Data** tab, then describe what you want:
+
+```
+Find total and average revenue, the top 10 products by sales, and the monthly revenue trend.
+```
+
+```
+Give me KPIs for customer count, repeat-purchase rate, and average order value,
+plus a breakdown of orders by region.
+```
+
+```
+What are the key metrics here? Chart the most important categorical breakdowns and any time trends.
+```
+
+**How it works:** the AI never sees your full dataset — only a compact profile (column names, types, ranges, and a few sample rows). It returns an *analysis plan* (which columns and aggregations answer your prompt), and the backend executes that plan with pandas. That means the KPI and chart numbers are computed exactly from your data, even for large files — the AI decides *what* to measure, pandas decides the *values*. The bonus SQL query targets a single table named `data` whose columns are your file's columns.
 
 ## Windows Note
 

@@ -2,8 +2,9 @@ import logging
 import traceback
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from typing import Optional
 
 logging.basicConfig(level=logging.INFO)
 
@@ -15,11 +16,13 @@ from .schemas import (
     ScriptGenerationResponse,
     SqlGenerationRequest,
     SqlGenerationResponse,
+    DataAnalysisResponse,
 )
 from .scraper import fetch_html, clean_html_for_ai, fallback_extract
 from .ai_extractor import extract_with_ai
 from .script_generator import generate_script
 from .sql_generator import generate_sql
+from .data_analyzer import analyze_data
 from .exporter import export_csv, export_json
 
 load_dotenv()
@@ -132,6 +135,39 @@ async def generate_sql_endpoint(request: SqlGenerationRequest):
 
     except Exception as error:
         logging.error("SQL generation error:\n%s", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(error))
+
+
+@app.post("/analyze-data", response_model=DataAnalysisResponse)
+async def analyze_data_endpoint(
+    file: UploadFile = File(...),
+    prompt: str = Form(...),
+    provider: Optional[str] = Form(None),
+    include_sql: bool = Form(True),
+):
+    try:
+        content = await file.read()
+        if not content:
+            raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+        result = analyze_data(
+            file_bytes=content,
+            filename=file.filename or "upload.csv",
+            prompt=prompt,
+            provider=provider,
+            include_sql=include_sql,
+        )
+
+        return DataAnalysisResponse(
+            filename=file.filename or "upload.csv",
+            prompt=prompt,
+            **result,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as error:
+        logging.error("Data analysis error:\n%s", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(error))
 
 

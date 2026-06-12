@@ -2,6 +2,7 @@ import { useState } from "react";
 import Scraper from "./Scraper";
 import ScriptGenerator from "./ScriptGenerator";
 import SqlGenerator from "./SqlGenerator";
+import DataAnalyzer from "./DataAnalyzer";
 
 const TABS = [
   {
@@ -28,6 +29,14 @@ const TABS = [
     subtitle:
       "Paste your PostgreSQL DDL, describe what you want — get queries, a runnable Python script, and a visual ERD grounded in your schema.",
   },
+  {
+    id: "analyze",
+    label: "Analyze Data",
+    eyebrow: "Spreadsheet Analytics",
+    title: "KPIs, Metrics & Charts from a Spreadsheet",
+    subtitle:
+      "Upload a CSV, Excel, or JSON file and describe the stats you want — get accurate KPIs, rendered charts, and the SQL query that finds the same numbers.",
+  },
 ];
 
 export default function App() {
@@ -37,7 +46,8 @@ export default function App() {
   function renderTab() {
     if (activeTab === "scrape") return <Scraper />;
     if (activeTab === "generate") return <ScriptGenerator />;
-    return <SqlGenerator />;
+    if (activeTab === "sql") return <SqlGenerator />;
+    return <DataAnalyzer />;
   }
 
   return (
