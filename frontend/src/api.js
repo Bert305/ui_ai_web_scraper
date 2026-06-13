@@ -2,6 +2,48 @@ import axios from "axios";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
+const ACCESS_KEY_STORAGE = "app_access_key";
+
+export function getAccessKey() {
+  return localStorage.getItem(ACCESS_KEY_STORAGE) || "";
+}
+
+export function setAccessKey(key) {
+  if (key) localStorage.setItem(ACCESS_KEY_STORAGE, key);
+  else localStorage.removeItem(ACCESS_KEY_STORAGE);
+}
+
+export function clearAccessKey() {
+  localStorage.removeItem(ACCESS_KEY_STORAGE);
+}
+
+// Attach the shared access key to every request (if one is stored).
+axios.interceptors.request.use((config) => {
+  const key = getAccessKey();
+  if (key && !config.headers["X-App-Key"]) {
+    config.headers["X-App-Key"] = key;
+  }
+  return config;
+});
+
+// If the server rejects the key, drop it and let the app re-lock.
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error?.response?.status === 401) {
+      clearAccessKey();
+      window.dispatchEvent(new Event("app-unauthorized"));
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Validate the stored key (or confirm auth is disabled). Throws on 401.
+export async function checkAccess() {
+  await axios.get(`${API_BASE_URL}/auth/check`);
+  return true;
+}
+
 export async function scrapeWebsite({ url, prompt, useAi, provider }) {
   const response = await axios.post(`${API_BASE_URL}/scrape`, {
     url,

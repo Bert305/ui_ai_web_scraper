@@ -1,8 +1,10 @@
 import logging
+import os
+import secrets
 import traceback
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, File, Form, UploadFile
+from fastapi import FastAPI, HTTPException, File, Form, UploadFile, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 
@@ -42,12 +44,33 @@ app.add_middleware(
 )
 
 
+def require_app_key(x_app_key: Optional[str] = Header(None)):
+    """Gate protected endpoints behind a single shared access key.
+
+    Set APP_ACCESS_KEY in the backend .env to enable. When it is unset (e.g.
+    local development), auth is disabled and all requests pass — so you only
+    turn this on in your deployed environment.
+    """
+    expected = os.getenv("APP_ACCESS_KEY")
+    if not expected:
+        return  # auth disabled — no key configured
+    if not x_app_key or not secrets.compare_digest(x_app_key, expected):
+        raise HTTPException(status_code=401, detail="Invalid or missing access key.")
+
+
 @app.get("/")
 def health_check():
     return {"status": "ok", "message": "AI Web Scraper API is running"}
 
 
-@app.post("/scrape", response_model=ScrapeResponse)
+@app.get("/auth/check")
+def auth_check(_: None = Depends(require_app_key)):
+    """Lightweight endpoint the frontend calls to validate the access key.
+    Returns 200 when the key is valid (or auth is disabled), 401 otherwise."""
+    return {"ok": True, "auth_required": bool(os.getenv("APP_ACCESS_KEY"))}
+
+
+@app.post("/scrape", response_model=ScrapeResponse, dependencies=[Depends(require_app_key)])
 async def scrape(request: ScrapeRequest):
     url = str(request.url)
 
@@ -82,7 +105,11 @@ async def scrape(request: ScrapeRequest):
         raise HTTPException(status_code=500, detail=str(error))
 
 
-@app.post("/generate-script", response_model=ScriptGenerationResponse)
+@app.post(
+    "/generate-script",
+    response_model=ScriptGenerationResponse,
+    dependencies=[Depends(require_app_key)],
+)
 async def generate_script_endpoint(request: ScriptGenerationRequest):
     url = str(request.url)
 
@@ -114,7 +141,11 @@ async def generate_script_endpoint(request: ScriptGenerationRequest):
         raise HTTPException(status_code=500, detail=str(error))
 
 
-@app.post("/generate-sql", response_model=SqlGenerationResponse)
+@app.post(
+    "/generate-sql",
+    response_model=SqlGenerationResponse,
+    dependencies=[Depends(require_app_key)],
+)
 async def generate_sql_endpoint(request: SqlGenerationRequest):
     try:
         result = generate_sql(
@@ -138,7 +169,11 @@ async def generate_sql_endpoint(request: SqlGenerationRequest):
         raise HTTPException(status_code=500, detail=str(error))
 
 
-@app.post("/analyze-data", response_model=DataAnalysisResponse)
+@app.post(
+    "/analyze-data",
+    response_model=DataAnalysisResponse,
+    dependencies=[Depends(require_app_key)],
+)
 async def analyze_data_endpoint(
     file: UploadFile = File(...),
     prompt: str = Form(...),
@@ -171,7 +206,7 @@ async def analyze_data_endpoint(
         raise HTTPException(status_code=500, detail=str(error))
 
 
-@app.post("/export")
+@app.post("/export", dependencies=[Depends(require_app_key)])
 async def export_data(request: ExportRequest):
     export_format = request.format.lower().strip()
 
