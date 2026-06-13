@@ -66,3 +66,22 @@ class DataAnalysisResponse(BaseModel):
     kpis: List[Dict[str, Any]] = []
     charts: List[Dict[str, Any]] = []
     sql: Optional[str] = None
+
+
+class TransformResponse(BaseModel):
+    filename: str
+    target_mode: str  # ddl | describe | infer | file
+    target_table: str
+    target_columns: List[Dict[str, Any]]
+    mapping: List[Dict[str, Any]]  # per target column: source, op, type badge, notes
+    plan: Optional[Dict[str, Any]] = None  # raw plan, for editing + re-running the mapping
+    notes: Optional[str] = None
+    issues: List[str] = []
+    source_row_count: int
+    target_row_count: int
+    source_columns: List[Dict[str, Any]] = []
+    preview: List[Dict[str, Any]] = []  # first N transformed rows
+    rows: List[Dict[str, Any]] = []     # full transformed rows (for CSV/JSON export)
+    ddl: Optional[str] = None           # target CREATE TABLE
+    inserts: Optional[str] = None       # SQL INSERT statements
+    script: Optional[str] = None        # generated pandas ETL script

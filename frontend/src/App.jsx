@@ -3,6 +3,7 @@ import Scraper from "./Scraper";
 import ScriptGenerator from "./ScriptGenerator";
 import SqlGenerator from "./SqlGenerator";
 import DataAnalyzer from "./DataAnalyzer";
+import Etl from "./Etl";
 
 const TABS = [
   {
@@ -37,6 +38,14 @@ const TABS = [
     subtitle:
       "Upload a CSV, Excel, or JSON file and describe the stats you want — get accurate KPIs, rendered charts, and the SQL query that finds the same numbers.",
   },
+  {
+    id: "etl",
+    label: "Transform / ETL",
+    eyebrow: "Data Transformation",
+    title: "Reshape a Dataset into a Target Schema",
+    subtitle:
+      "Upload a spreadsheet or JSON, then define a target by pasting DDL, describing it, inferring it, or matching another file. Review the column mapping, then export transformed CSV/JSON, SQL INSERTs, target DDL, and a runnable pandas ETL script.",
+  },
 ];
 
 export default function App() {
@@ -47,7 +56,8 @@ export default function App() {
     if (activeTab === "scrape") return <Scraper />;
     if (activeTab === "generate") return <ScriptGenerator />;
     if (activeTab === "sql") return <SqlGenerator />;
-    return <DataAnalyzer />;
+    if (activeTab === "analyze") return <DataAnalyzer />;
+    return <Etl />;
   }
 
   return (
