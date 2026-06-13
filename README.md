@@ -107,6 +107,10 @@ Create your `.env` file and add at least one AI key:
 ANTHROPIC_API_KEY=your_anthropic_key_here
 GEMINI_API_KEY=your_gemini_key_here
 OPENAI_API_KEY=your_openai_key_here
+
+# Optional — protect the deployed app with a single shared access key.
+# Leave unset for local dev (auth disabled). Set it in your deployment.
+APP_ACCESS_KEY=choose_a_long_random_string
 ```
 
 Run the backend:
@@ -200,6 +204,17 @@ What are the key metrics here? Chart the most important categorical breakdowns a
 ```
 
 **How it works:** the AI never sees your full dataset — only a compact profile (column names, types, ranges, and a few sample rows). It returns an *analysis plan* (which columns and aggregations answer your prompt), and the backend executes that plan with pandas. That means the KPI and chart numbers are computed exactly from your data, even for large files — the AI decides *what* to measure, pandas decides the *values*. The bonus SQL query targets a single table named `data` whose columns are your file's columns.
+
+## Access Protection (shared key)
+
+Because every endpoint spends real AI-provider money, the deployed app can be locked behind a **single shared access key** — no database, no user accounts.
+
+- Set `APP_ACCESS_KEY` in the backend `.env` to a long random string. When set, every protected endpoint requires an `X-App-Key` header matching it; mismatches get a `401`.
+- When `APP_ACCESS_KEY` is **unset** (e.g. local dev), auth is disabled and all requests pass — so you only turn it on in your deployed environment.
+- The frontend shows a lock screen on load, validates the key against `GET /auth/check`, stores it in `localStorage`, and sends it on every request. If the server ever rejects the key, the UI re-locks automatically.
+- The health check (`GET /`) stays public so uptime probes keep working.
+
+> This is deliberately lightweight — good for keeping a personal/internal deployment private and protecting your API spend. For a public, multi-user product you'd still want real accounts, per-user rate limiting, and provider-side spend caps.
 
 ## Windows Note
 
