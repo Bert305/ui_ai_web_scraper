@@ -19,14 +19,12 @@ from .schemas import (
     SqlGenerationRequest,
     SqlGenerationResponse,
     DataAnalysisResponse,
-    TransformResponse,
 )
 from .scraper import fetch_html, clean_html_for_ai, fallback_extract
 from .ai_extractor import extract_with_ai
 from .script_generator import generate_script
 from .sql_generator import generate_sql
 from .data_analyzer import analyze_data
-from .etl_transformer import transform_data
 from .exporter import export_csv, export_json
 
 load_dotenv()
@@ -205,70 +203,6 @@ async def analyze_data_endpoint(
         raise
     except Exception as error:
         logging.error("Data analysis error:\n%s", traceback.format_exc())
-        raise HTTPException(status_code=500, detail=str(error))
-
-
-@app.post(
-    "/transform",
-    response_model=TransformResponse,
-    dependencies=[Depends(require_app_key)],
-)
-async def transform_endpoint(
-    file: UploadFile = File(...),
-    target_mode: str = Form("describe"),  # ddl | describe | infer | file
-    target_ddl: Optional[str] = Form(None),
-    target_prompt: Optional[str] = Form(None),
-    target_file: Optional[UploadFile] = File(None),
-    provider: Optional[str] = Form(None),
-    include_inserts: bool = Form(True),
-    include_ddl: bool = Form(True),
-    include_script: bool = Form(True),
-    plan_json: Optional[str] = Form(None),  # edited mapping -> re-run without the AI
-):
-    try:
-        content = await file.read()
-        if not content:
-            raise HTTPException(status_code=400, detail="Source file is empty.")
-
-        plan_override = None
-        if plan_json:
-            import json
-            try:
-                plan_override = json.loads(plan_json)
-            except json.JSONDecodeError:
-                raise HTTPException(status_code=400, detail="plan_json is not valid JSON.")
-
-        target_bytes = None
-        target_name = None
-        if target_file is not None:
-            target_bytes = await target_file.read()
-            target_name = target_file.filename
-
-        result = transform_data(
-            source_bytes=content,
-            source_filename=file.filename or "source.csv",
-            target_mode=target_mode,
-            target_ddl=target_ddl,
-            target_prompt=target_prompt,
-            target_bytes=target_bytes,
-            target_filename=target_name,
-            provider=provider,
-            include_inserts=include_inserts,
-            include_ddl=include_ddl,
-            include_script=include_script,
-            plan_override=plan_override,
-        )
-
-        return TransformResponse(
-            filename=file.filename or "source.csv",
-            target_mode=target_mode,
-            **result,
-        )
-
-    except HTTPException:
-        raise
-    except Exception as error:
-        logging.error("Transform error:\n%s", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(error))
 
 

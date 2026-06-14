@@ -101,37 +101,6 @@ export async function analyzeData({ file, prompt, provider, includeSql }) {
   return response.data;
 }
 
-export async function transformData({
-  file,
-  targetMode,
-  targetDdl,
-  targetPrompt,
-  targetFile,
-  provider,
-  includeInserts,
-  includeDdl,
-  includeScript,
-  planJson,
-}) {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("target_mode", targetMode);
-  if (targetDdl) formData.append("target_ddl", targetDdl);
-  if (targetPrompt) formData.append("target_prompt", targetPrompt);
-  if (targetFile) formData.append("target_file", targetFile);
-  formData.append("provider", provider || "auto");
-  formData.append("include_inserts", includeInserts ? "true" : "false");
-  formData.append("include_ddl", includeDdl ? "true" : "false");
-  formData.append("include_script", includeScript ? "true" : "false");
-  if (planJson) formData.append("plan_json", planJson);
-
-  const response = await axios.post(`${API_BASE_URL}/transform`, formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
-
-  return response.data;
-}
-
 export function downloadText(text, filename) {
   const blob = new Blob([text], { type: "text/plain" });
   const downloadUrl = window.URL.createObjectURL(blob);
@@ -144,7 +113,7 @@ export function downloadText(text, filename) {
   window.URL.revokeObjectURL(downloadUrl);
 }
 
-export async function exportData(data, format, baseName = "scraped_data") {
+export async function exportData(data, format) {
   const response = await axios.post(
     `${API_BASE_URL}/export`,
     {
@@ -161,7 +130,7 @@ export async function exportData(data, format, baseName = "scraped_data") {
 
   const link = document.createElement("a");
   link.href = downloadUrl;
-  link.download = `${baseName}.${format === "csv" ? "csv" : "json"}`;
+  link.download = format === "csv" ? "scraped_data.csv" : "scraped_data.json";
   document.body.appendChild(link);
   link.click();
   link.remove();
