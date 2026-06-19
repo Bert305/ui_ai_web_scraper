@@ -66,3 +66,4 @@ class DataAnalysisResponse(BaseModel):
     kpis: List[Dict[str, Any]] = []
     charts: List[Dict[str, Any]] = []
     sql: Optional[str] = None
+    python_code: Optional[str] = None

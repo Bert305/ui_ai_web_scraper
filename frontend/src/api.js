@@ -87,12 +87,13 @@ export async function generateSql({
   return response.data;
 }
 
-export async function analyzeData({ file, prompt, provider, includeSql }) {
+export async function analyzeData({ file, prompt, provider, includeSql, includePython }) {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("prompt", prompt);
   formData.append("provider", provider || "auto");
   formData.append("include_sql", includeSql ? "true" : "false");
+  formData.append("include_python", includePython ? "true" : "false");
 
   const response = await axios.post(`${API_BASE_URL}/analyze-data`, formData, {
     headers: { "Content-Type": "multipart/form-data" },

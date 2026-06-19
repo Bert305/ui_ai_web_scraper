@@ -104,10 +104,12 @@ export default function DataAnalyzer() {
   );
   const [provider, setProvider] = useState("auto");
   const [includeSql, setIncludeSql] = useState(true);
+  const [includePython, setIncludePython] = useState(false);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [pythonCopied, setPythonCopied] = useState(false);
   const [exporting, setExporting] = useState(false);
   const fileInputRef = useRef(null);
   const captureRef = useRef(null);
@@ -129,9 +131,10 @@ export default function DataAnalyzer() {
     setError("");
     setResult(null);
     setCopied(false);
+    setPythonCopied(false);
 
     try {
-      const data = await analyzeData({ file, prompt, provider, includeSql });
+      const data = await analyzeData({ file, prompt, provider, includeSql, includePython });
       setResult(data);
     } catch (err) {
       setError(err?.response?.data?.detail || err.message || "Something went wrong.");
@@ -146,6 +149,17 @@ export default function DataAnalyzer() {
       await navigator.clipboard.writeText(result.sql);
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setError("Copy failed — your browser may have blocked clipboard access.");
+    }
+  }
+
+  async function copyPython() {
+    if (!result?.python_code) return;
+    try {
+      await navigator.clipboard.writeText(result.python_code);
+      setPythonCopied(true);
+      setTimeout(() => setPythonCopied(false), 1800);
     } catch {
       setError("Copy failed — your browser may have blocked clipboard access.");
     }
@@ -215,6 +229,15 @@ export default function DataAnalyzer() {
               onChange={(e) => setIncludeSql(e.target.checked)}
             />
             Also generate the SQL query that finds the same stats (bonus)
+          </label>
+
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={includePython}
+              onChange={(e) => setIncludePython(e.target.checked)}
+            />
+            Also generate a runnable Python script (pandas + matplotlib) that reproduces these exact numbers
           </label>
 
           <label>
@@ -300,6 +323,33 @@ export default function DataAnalyzer() {
                 </div>
               </div>
               <pre className="codeBlock">{result.sql}</pre>
+            </section>
+          )}
+
+          {result.python_code && (
+            <section className="card">
+              <div className="resultHeader">
+                <div>
+                  <h2>Python Script</h2>
+                  <p>
+                    pandas + matplotlib — applies the same aggregations, so it reproduces these exact numbers
+                  </p>
+                </div>
+                <div className="actions">
+                  <button onClick={copyPython}>{pythonCopied ? "Copied!" : "Copy"}</button>
+                  <button
+                    onClick={() =>
+                      downloadText(
+                        result.python_code,
+                        `${(result?.filename || "data").replace(/\.[^.]+$/, "")}-analysis.py`
+                      )
+                    }
+                  >
+                    Download
+                  </button>
+                </div>
+              </div>
+              <pre className="codeBlock">{result.python_code}</pre>
             </section>
           )}
 

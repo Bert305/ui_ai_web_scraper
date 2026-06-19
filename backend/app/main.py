@@ -179,6 +179,7 @@ async def analyze_data_endpoint(
     prompt: str = Form(...),
     provider: Optional[str] = Form(None),
     include_sql: bool = Form(True),
+    include_python: bool = Form(False),
 ):
     try:
         content = await file.read()
@@ -191,6 +192,7 @@ async def analyze_data_endpoint(
             prompt=prompt,
             provider=provider,
             include_sql=include_sql,
+            include_python=include_python,
         )
 
         return DataAnalysisResponse(

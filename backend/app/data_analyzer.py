@@ -389,6 +389,195 @@ def _compute_chart(df: pd.DataFrame, spec: Dict[str, Any]) -> Optional[Dict[str,
     return {"title": str(title), "type": ctype, "x_label": x, "y_label": y_label, "data": data}
 
 
+# --------------------------------------------------------------------------- #
+# Python script rendering (deterministic — built from the validated plan, no AI)
+#
+# The script applies the SAME aggregations execute_plan() runs, so the numbers
+# it prints/plots match the tool exactly. We only emit code for specs that would
+# actually compute (same validation as _compute_kpi / _compute_chart), so the
+# script never references columns that don't exist.
+# --------------------------------------------------------------------------- #
+def _slug(text: str) -> str:
+    s = re.sub(r"[^a-z0-9]+", "_", str(text).lower()).strip("_")
+    return s or "chart"
+
+
+def _render_python(df: pd.DataFrame, plan: Dict[str, Any], filename: str) -> Optional[str]:
+    cols = set(df.columns)
+    lines: List[str] = []
+
+    # ----- KPI lines -----
+    for spec in plan.get("kpis") or []:
+        if not isinstance(spec, dict):
+            continue
+        agg = _normalize_agg(spec.get("agg"))
+        column = spec.get("column")
+        label = str(spec.get("label") or "Metric")
+        fmt = (spec.get("format") or "number").lower()
+        if agg == "count" and not column:
+            expr = "float(len(df))"
+        elif column and column in cols:
+            if agg == "count":
+                expr = f"float(df[{column!r}].notna().sum())"
+            elif agg == "nunique":
+                expr = f"float(df[{column!r}].nunique(dropna=True))"
+            else:
+                expr = f"pd.to_numeric(df[{column!r}], errors='coerce').{agg}()"
+        else:
+            continue
+        lines.append(f"    print('{label}:', format_value({expr}, {fmt!r}))")
+
+    kpi_block = "\n".join(lines) if lines else "    print('(no KPIs)')"
+
+    # ----- Chart blocks -----
+    chart_blocks: List[str] = []
+    chart_index = 0
+    for spec in plan.get("charts") or []:
+        if not isinstance(spec, dict):
+            continue
+        ctype = (spec.get("type") or "bar").strip().lower()
+        if ctype not in ("bar", "line", "pie", "scatter"):
+            ctype = "bar"
+        x = spec.get("x")
+        y = spec.get("y")
+        if not x or x not in cols:
+            continue
+        agg = _normalize_agg(spec.get("agg"))
+        title = str(spec.get("title") or "Chart")
+        try:
+            limit = int(spec.get("limit") or 10)
+        except (TypeError, ValueError):
+            limit = 10
+        limit = max(1, min(limit, 50))
+
+        chart_index += 1
+        png = f"chart_{chart_index}_{_slug(title)}.png"
+        b = [f"    # Chart {chart_index}: {title} ({ctype})"]
+
+        if ctype == "scatter":
+            if not y or y not in cols:
+                chart_index -= 1
+                continue
+            b += [
+                f"    sub = df[[{x!r}, {y!r}]].copy()",
+                f"    sub[{x!r}] = pd.to_numeric(sub[{x!r}], errors='coerce')",
+                f"    sub[{y!r}] = pd.to_numeric(sub[{y!r}], errors='coerce')",
+                "    sub = sub.dropna().head(500)",
+                "    fig, ax = plt.subplots(figsize=(8, 5))",
+                f"    ax.scatter(sub[{x!r}], sub[{y!r}], alpha=0.7)",
+                f"    ax.set_xlabel({x!r}); ax.set_ylabel({y!r})",
+            ]
+        else:
+            use_count = agg == "count" or not y or y not in cols
+            b += [
+                f"    work = df[[{x!r}]].copy()" if use_count
+                else f"    work = df[[{x!r}, {y!r}]].copy()",
+                f"    work = work[work[{x!r}].notna()]",
+            ]
+            if use_count:
+                b += [
+                    f"    series = work.groupby({x!r}).size()",
+                    "    y_label = 'count'",
+                ]
+            else:
+                b += [
+                    f"    work[{y!r}] = pd.to_numeric(work[{y!r}], errors='coerce')",
+                    f"    series = work.dropna(subset=[{y!r}]).groupby({x!r})[{y!r}].agg({agg!r})",
+                    f"    y_label = {f'{agg} of {y}'!r}",
+                ]
+            if ctype == "line":
+                b.append("    series = series.sort_index()")
+            else:
+                ascending = str(spec.get("sort", "desc")).lower() == "asc"
+                b.append(f"    series = series.sort_values(ascending={ascending})")
+            b.append(f"    series = series.head({limit})")
+            b.append("    fig, ax = plt.subplots(figsize=(8, 5))")
+            if ctype == "pie":
+                b.append("    ax.pie(series.values, labels=series.index.astype(str), autopct='%1.1f%%')")
+            elif ctype == "line":
+                b += [
+                    "    ax.plot(series.index.astype(str), series.values, marker='o')",
+                    f"    ax.set_xlabel({x!r}); ax.set_ylabel(y_label)",
+                    "    plt.xticks(rotation=30, ha='right')",
+                ]
+            else:  # bar
+                b += [
+                    "    ax.bar(series.index.astype(str), series.values)",
+                    f"    ax.set_xlabel({x!r}); ax.set_ylabel(y_label)",
+                    "    plt.xticks(rotation=30, ha='right')",
+                ]
+
+        b += [
+            f"    ax.set_title({title!r})",
+            "    fig.tight_layout()",
+            f"    fig.savefig({png!r}, dpi=150)",
+            "    plt.close(fig)",
+            f"    print('Saved {png}')",
+        ]
+        chart_blocks.append("\n".join(b))
+
+    charts_body = "\n\n".join(chart_blocks) if chart_blocks else "    print('(no charts)')"
+
+    safe_name = filename or "data.csv"
+    return f'''#!/usr/bin/env python3
+"""Auto-generated analysis for {safe_name}.
+
+Reproduces the KPIs and charts from the Analyze Data tool with pandas + matplotlib.
+The numbers match the tool exactly because this applies the same aggregations.
+
+Setup:
+    pip install pandas matplotlib openpyxl
+Run:
+    python {_slug(safe_name)}_analysis.py [path-to-data-file]
+"""
+import sys
+
+import pandas as pd
+import matplotlib
+matplotlib.use("Agg")  # write PNGs without a display
+import matplotlib.pyplot as plt
+
+DATA_FILE = sys.argv[1] if len(sys.argv) > 1 else {safe_name!r}
+
+
+def load_table(path):
+    name = path.lower()
+    if name.endswith((".xlsx", ".xlsm", ".xls")):
+        return pd.read_excel(path)
+    if name.endswith(".json"):
+        return pd.read_json(path)
+    sep = "\\t" if name.endswith(".tsv") else ","
+    return pd.read_csv(path, sep=sep)
+
+
+def format_value(value, fmt):
+    if value is None or (isinstance(value, float) and value != value):  # None / NaN
+        return "—"
+    if fmt == "currency":
+        return f"${{value:,.2f}}"
+    if fmt == "percent":
+        return f"{{value:,.1f}}%"
+    if float(value).is_integer() and abs(value) < 1e15:
+        return f"{{int(value):,}}"
+    return f"{{value:,.2f}}"
+
+
+def main():
+    df = load_table(DATA_FILE)
+    df.columns = [str(c).strip() for c in df.columns]
+
+    print("=== KPIs ===")
+{kpi_block}
+
+    print("\\n=== Charts ===")
+{charts_body}
+
+
+if __name__ == "__main__":
+    main()
+'''
+
+
 def execute_plan(df: pd.DataFrame, plan: Dict[str, Any]) -> Dict[str, Any]:
     kpis = [
         kpi
@@ -416,6 +605,7 @@ def analyze_data(
     prompt: str,
     provider: Optional[str] = None,
     include_sql: bool = True,
+    include_python: bool = False,
 ) -> Dict[str, Any]:
     if not prompt or not prompt.strip():
         raise RuntimeError("prompt is empty — describe the stats, KPIs, or metrics you want.")
@@ -426,9 +616,12 @@ def analyze_data(
     plan = build_analysis_plan(profile, prompt, provider, include_sql)
     executed = execute_plan(df, plan)
 
+    python_code = _render_python(df, plan, filename) if include_python else None
+
     return {
         "row_count": profile["row_count"],
         "columns": profile["columns"],
         "sample": profile["sample"],
+        "python_code": python_code,
         **executed,
     }
