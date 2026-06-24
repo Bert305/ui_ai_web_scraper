@@ -360,6 +360,82 @@ td {
   margin-bottom: 8px;
 }
 
+/* --- Train Model tab --- */
+.fieldRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.fieldRow input[type="range"] {
+  width: 100%;
+}
+
+.badgeRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: capitalize;
+  background: #eef1ff;
+  color: #233ee8;
+}
+
+.badge-classification {
+  background: #e8f1ff;
+  color: #1d4ed8;
+}
+
+.badge-regression {
+  background: #eafaf1;
+  color: #0f9d58;
+}
+
+.confusionWrap {
+  margin-top: 14px;
+  overflow: auto;
+}
+
+.confusionTable {
+  min-width: 0;
+  width: auto;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.confusionTable th,
+.confusionTable td {
+  border: 1px solid #edf0f5;
+  text-align: center;
+  padding: 10px 12px;
+  min-width: 56px;
+}
+
+.confusionTable thead th {
+  background: #f8f9fc;
+}
+
+.confusionTable tbody th {
+  background: #f8f9fc;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.confusionTable .confusionCorner {
+  background: #ffffff;
+  font-weight: 600;
+  color: #5c667a;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
 @media (max-width: 720px) {
   .resultHeader {
     align-items: flex-start;
@@ -367,6 +443,10 @@ td {
   }
 
   .chartGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .fieldRow {
     grid-template-columns: 1fr;
   }
 }

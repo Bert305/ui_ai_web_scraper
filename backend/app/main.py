@@ -19,12 +19,15 @@ from .schemas import (
     SqlGenerationRequest,
     SqlGenerationResponse,
     DataAnalysisResponse,
+    ColumnInspectResponse,
+    ModelTrainResponse,
 )
 from .scraper import fetch_html, clean_html_for_ai, fallback_extract
 from .ai_extractor import extract_with_ai
 from .script_generator import generate_script
 from .sql_generator import generate_sql
 from .data_analyzer import analyze_data
+from .ml_trainer import inspect_columns, train_model
 from .exporter import export_csv, export_json
 
 load_dotenv()
@@ -205,6 +208,71 @@ async def analyze_data_endpoint(
         raise
     except Exception as error:
         logging.error("Data analysis error:\n%s", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(error))
+
+
+@app.post(
+    "/inspect-columns",
+    response_model=ColumnInspectResponse,
+    dependencies=[Depends(require_app_key)],
+)
+async def inspect_columns_endpoint(file: UploadFile = File(...)):
+    """Profile an uploaded spreadsheet so the frontend can list its columns and
+    let the user pick a target to predict."""
+    try:
+        content = await file.read()
+        if not content:
+            raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+        profile = inspect_columns(content, file.filename or "upload.csv")
+        return ColumnInspectResponse(
+            filename=file.filename or "upload.csv",
+            row_count=profile["row_count"],
+            columns=profile["columns"],
+            sample=profile["sample"],
+        )
+
+    except HTTPException:
+        raise
+    except Exception as error:
+        logging.error("Column inspect error:\n%s", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(error))
+
+
+@app.post(
+    "/train-model",
+    response_model=ModelTrainResponse,
+    dependencies=[Depends(require_app_key)],
+)
+async def train_model_endpoint(
+    file: UploadFile = File(...),
+    target: str = Form(...),
+    task: Optional[str] = Form(None),  # auto | classification | regression
+    model: Optional[str] = Form(None),  # auto | random_forest | gradient_boosting | logistic_regression | linear_regression
+    test_size: float = Form(0.2),
+    include_python: bool = Form(False),
+):
+    try:
+        content = await file.read()
+        if not content:
+            raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+        result = train_model(
+            file_bytes=content,
+            filename=file.filename or "upload.csv",
+            target=target,
+            task=task,
+            model=model,
+            test_size=test_size,
+            include_python=include_python,
+        )
+
+        return ModelTrainResponse(filename=file.filename or "upload.csv", **result)
+
+    except HTTPException:
+        raise
+    except Exception as error:
+        logging.error("Model training error:\n%s", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(error))
 
 

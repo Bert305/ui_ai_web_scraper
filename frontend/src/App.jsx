@@ -3,6 +3,7 @@ import Scraper from "./Scraper";
 import ScriptGenerator from "./ScriptGenerator";
 import SqlGenerator from "./SqlGenerator";
 import DataAnalyzer from "./DataAnalyzer";
+import ModelTrainer from "./ModelTrainer";
 
 const TABS = [
   {
@@ -37,6 +38,14 @@ const TABS = [
     subtitle:
       "Upload a CSV, Excel, or JSON file and describe the stats you want — get accurate KPIs, rendered charts, and the SQL query that finds the same numbers.",
   },
+  {
+    id: "train",
+    label: "Train Model",
+    eyebrow: "Machine Learning",
+    title: "Train a Model & Visualize It Against the Target",
+    subtitle:
+      "Upload a CSV, Excel, or JSON file, pick the column to predict, and let scikit-learn train a classification or regression model — with metrics, feature importance, and plots of how it tracks the target.",
+  },
 ];
 
 export default function App() {
@@ -47,7 +56,8 @@ export default function App() {
     if (activeTab === "scrape") return <Scraper />;
     if (activeTab === "generate") return <ScriptGenerator />;
     if (activeTab === "sql") return <SqlGenerator />;
-    return <DataAnalyzer />;
+    if (activeTab === "analyze") return <DataAnalyzer />;
+    return <ModelTrainer />;
   }
 
   return (

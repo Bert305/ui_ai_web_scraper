@@ -102,6 +102,33 @@ export async function analyzeData({ file, prompt, provider, includeSql, includeP
   return response.data;
 }
 
+export async function inspectColumns({ file }) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await axios.post(`${API_BASE_URL}/inspect-columns`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
+  return response.data;
+}
+
+export async function trainModel({ file, target, task, model, testSize, includePython }) {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("target", target);
+  formData.append("task", task || "auto");
+  formData.append("model", model || "auto");
+  formData.append("test_size", String(testSize ?? 0.2));
+  formData.append("include_python", includePython ? "true" : "false");
+
+  const response = await axios.post(`${API_BASE_URL}/train-model`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
+  return response.data;
+}
+
 export function downloadText(text, filename) {
   const blob = new Blob([text], { type: "text/plain" });
   const downloadUrl = window.URL.createObjectURL(blob);

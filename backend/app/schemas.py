@@ -67,3 +67,31 @@ class DataAnalysisResponse(BaseModel):
     charts: List[Dict[str, Any]] = []
     sql: Optional[str] = None
     python_code: Optional[str] = None
+
+
+class ColumnInspectResponse(BaseModel):
+    """Lightweight profile so the frontend can populate the target-column picker."""
+    filename: str
+    row_count: int
+    columns: List[Dict[str, Any]]
+    sample: List[Dict[str, Any]] = []
+
+
+class ModelTrainResponse(BaseModel):
+    filename: str
+    target: str
+    task: str  # classification | regression
+    task_auto_detected: bool
+    model_key: str
+    model_name: str
+    n_rows_used: int
+    n_train: int
+    n_test: int
+    n_features: int
+    feature_columns: List[str] = []
+    skipped_columns: List[str] = []
+    metrics: Dict[str, Any] = {}
+    kpis: List[Dict[str, Any]] = []
+    charts: List[Dict[str, Any]] = []
+    summary: Optional[str] = None
+    python_code: Optional[str] = None
