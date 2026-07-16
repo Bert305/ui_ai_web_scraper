@@ -54,6 +54,10 @@ DEBUG_DUMPS = False        # set True to save HTML/screenshots of each hop for t
 # When True, also write South-Florida-only outputs (Miami-Dade, Broward, Palm Beach counties).
 SAVE_SOUTH_FLORIDA = True
 
+# Output files are prefixed with a run timestamp so each batch is written to its own files
+# instead of overwriting the previous run. Stamped once at import so all four files match.
+BATCH_STAMP = time.strftime("%Y%m%d_%H%M%S")
+
 # Close/expiration dates and salary aren't in Peterson's API — they live on each usajobs.gov
 # job page (JobPosting "validThrough" + the visible "Salary" field). When True, fetch that
 # page per job to add close_date and salary. ENRICH_SCOPE controls how many pages we fetch:
@@ -297,18 +301,20 @@ def save_south_florida(jobs):
     if ENRICH_CLOSE_DATES and ENRICH_SCOPE == "south_florida":
         enrich_from_usajobs(sf)
 
-    with open("scraped_data_south_florida.json", "w", encoding="utf-8") as f:
+    sf_json = f"scraped_data_south_florida_{BATCH_STAMP}.json"
+    with open(sf_json, "w", encoding="utf-8") as f:
         json.dump(sf, f, indent=2, ensure_ascii=False)
-    print("Saved scraped_data_south_florida.json")
+    print(f"Saved {sf_json}")
 
     fieldnames = ["title", "company", "county", "location", "country", "zip_code",
                   "href", "salary", "added_at", "close_date", "description", "id"]
-    with open("scraped_data_south_florida.csv", "w", newline="", encoding="utf-8") as f:
+    sf_csv = f"scraped_data_south_florida_{BATCH_STAMP}.csv"
+    with open(sf_csv, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         for job in sf:
             writer.writerow({k: job.get(k, "") for k in fieldnames})
-    print("Saved scraped_data_south_florida.csv")
+    print(f"Saved {sf_csv}")
     return sf
 
 
@@ -328,18 +334,20 @@ def save_results(jobs):
     if ENRICH_CLOSE_DATES and ENRICH_SCOPE == "all":
         enrich_from_usajobs(unique)
 
-    with open("scraped_data.json", "w", encoding="utf-8") as f:
+    all_json = f"scraped_data_{BATCH_STAMP}.json"
+    with open(all_json, "w", encoding="utf-8") as f:
         json.dump(unique, f, indent=2, ensure_ascii=False)
-    print("Saved scraped_data.json")
+    print(f"Saved {all_json}")
 
     fieldnames = ["title", "company", "location", "country", "zip_code",
                   "href", "salary", "added_at", "close_date", "description", "id"]
-    with open("scraped_data.csv", "w", newline="", encoding="utf-8") as f:
+    all_csv = f"scraped_data_{BATCH_STAMP}.csv"
+    with open(all_csv, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         for job in unique:
             writer.writerow({k: job.get(k, "") for k in fieldnames})
-    print("Saved scraped_data.csv")
+    print(f"Saved {all_csv}")
 
     if SAVE_SOUTH_FLORIDA:
         save_south_florida(unique)
