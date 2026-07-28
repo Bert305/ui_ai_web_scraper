@@ -18,19 +18,22 @@
 #
 # Run: python wrangle_for_upload.py
 
+# Part 2 - Go to Supabase and run the SQL Query to get the companies_id_download.csv file (name -> company_id) for all companies in the Workforce Miami database.
+# Part 2.5 - Don't forget to add the new companies to the Workforce Miami database before running this script, or they won't have a company_id and will be left blank in the output.
+# Part 3 - Run this script to generate jobs_upload.csv, which can be uploaded to Supabase.
 # Files needed to run script:
-#   source_scraped_data_south_florida.csv  (from scrape_south_florida.py)
-#   industries_rows.csv  (from jobsdb.com)
-#   companies_id_download.csv  (from jobsdb.com)
+#   source_scraped_data_south_florida.csv  (from usa_jobs_gov.py)
+#   industries_rows.csv  (csv file from Workforce Miami Database -- backend/industries_rows.csv)
+#   companies_id_download.csv  (from Workforce Miami Database -- Supabase export)
 
 import csv
 import re
 from datetime import datetime, timezone
 
-SOURCE_FILE = "source_scraped_data_south_florida.csv"
+SOURCE_FILE = "source_scraped_data_south_florida3.csv"
 INDUSTRIES_FILE = "industries_rows.csv"
-COMPANIES_FILE = "companies_id_download.csv"
-OUTPUT_FILE = "jobs_upload2.csv"
+COMPANIES_FILE = "companies_id_download2.csv"
+OUTPUT_FILE = "jobs_upload3.csv"
 
 # Manual fixes for industry names in the source that don't exactly match industries_rows.csv.
 # (e.g. "Telecommunications" has no exact row — map it here if you want a number.)

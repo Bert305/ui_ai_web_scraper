@@ -23,6 +23,10 @@
 #          playwright install chromium
 # Run:     python scraper2.py
 
+# Part 1 - run usa_jobs.py script extracting s jobs from Peterson's Career Prep using the save_south_florida()
+#  function to save scraped_data_south_florida.json and .csv.
+
+
 import json
 import csv
 import re
